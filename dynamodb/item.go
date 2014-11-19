@@ -7,8 +7,6 @@ import (
 	"log"
 )
 
-const maxNumberOfRetry = 4
-
 type BatchGetItem struct {
 	Server *Server
 	Keys   map[*Table][]Key
@@ -187,7 +185,13 @@ func (t *Table) putItem(hashKey, rangeKey string, attributes, expected []Attribu
 		q.AddExpected(expected)
 	}
 
-	jsonResponse, err := t.Server.queryServer(target("PutItem"), q)
+	var jsonResponse []byte
+	var err error
+
+	t.RetryHandler.Retry(func() (*Query, []byte, error) {
+		jsonResponse, err = t.Server.queryServer(target("PutItem"), q)
+		return q, jsonResponse, err
+	})
 	if err != nil {
 		return false, err
 	}

@@ -4,14 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"time"
 
 	simplejson "github.com/bitly/go-simplejson"
 )
 
 type Table struct {
-	Server *Server
-	Name   string
-	Key    PrimaryKey
+	Server       *Server
+	Name         string
+	Key          PrimaryKey
+	RetryHandler RetryHandlerInterface
 }
 
 type AttributeDefinitionT struct {
@@ -113,8 +116,13 @@ func (t *TableDescriptionT) BuildPrimaryKey() (pk PrimaryKey, err error) {
 	return
 }
 
-func (s *Server) NewTable(name string, key PrimaryKey) *Table {
-	return &Table{s, name, key}
+func (s *Server) NewTable(name string, key PrimaryKey, rhi RetryHandlerInterface) *Table {
+	// default to the basic retry mechanism
+	if rhi == nil {
+		rhi = BasicRetry{}
+	}
+
+	return &Table{s, name, key, rhi}
 }
 
 func (s *Server) ListTables() ([]string, error) {
@@ -248,4 +256,53 @@ func keyParam(k *PrimaryKey, hashKey string, rangeKey string) string {
 
 func keyValue(key string, value string) string {
 	return fmt.Sprintf("\"%s\":\"%s\"", key, value)
+}
+
+//-----------------------------------------------------------------------------
+// Retry Handler
+//-----------------------------------------------------------------------------
+
+const maxNumberOfRetry = 4
+
+type RetryHandlerInterface interface {
+	Retry(exec func() (*Query, []byte, error))
+}
+
+type BasicRetry struct{}
+
+func (br BasicRetry) Retry(exec func() (*Query, []byte, error)) {
+	// based on: http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html#APIRetries
+	currentRetry := uint(0)
+	for {
+		query, response, err := exec()
+		if currentRetry >= maxNumberOfRetry {
+			break
+		}
+
+		retry := false
+		if err != nil {
+			log.Printf("Error requesting from Amazon, request was: %#v\n response is:%#v\n and error is: %#v\n",
+				query, string(response), err)
+
+			if err, ok := err.(*Error); ok {
+				retry = (err.StatusCode == 500) ||
+					(err.Code == "ThrottlingException") ||
+					(err.Code == "ProvisionedThroughputExceededException")
+			}
+		}
+
+		if !retry {
+			break
+		}
+
+		log.Printf("Retrying in %v ms\n", (1<<currentRetry)*50)
+		time.After((1 << currentRetry) * 50 * time.Millisecond)
+		currentRetry += 1
+	}
+}
+
+type SkipRetry struct{}
+
+func (sr SkipRetry) Retry(exec func() (*Query, []byte, error)) {
+	exec()
 }

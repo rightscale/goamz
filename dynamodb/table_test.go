@@ -19,7 +19,7 @@ func (s *TableSuite) SetUpSuite(c *check.C) {
 	if err != nil {
 		c.Skip(err.Error())
 	}
-	s.table = s.server.NewTable(s.TableDescriptionT.TableName, pk)
+	s.table = s.server.NewTable(s.TableDescriptionT.TableName, pk, nil)
 
 	// Cleanup
 	s.TearDownSuite(c)
