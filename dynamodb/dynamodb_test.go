@@ -2,8 +2,8 @@ package dynamodb_test
 
 import (
 	"flag"
-	"github.com/crowdmob/goamz/aws"
-	"github.com/crowdmob/goamz/dynamodb"
+	"github.com/rightscale/goamz/aws"
+	"github.com/rightscale/goamz/dynamodb"
 	"gopkg.in/check.v1"
 	"testing"
 	"time"
@@ -12,7 +12,7 @@ import (
 const TIMEOUT = 3 * time.Minute
 
 var amazon = flag.Bool("amazon", false, "Enable tests against dynamodb")
-var local = flag.Bool("local", true, "Use DynamoDB local on 8080 instead of real server on us-east.")
+var local = flag.Bool("local", true, "Use DynamoDB local on 8000 instead of real server on us-east.")
 
 var dynamodb_region aws.Region
 var dynamodb_auth aws.Auth

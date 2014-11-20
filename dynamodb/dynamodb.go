@@ -3,7 +3,7 @@ package dynamodb
 import simplejson "github.com/bitly/go-simplejson"
 import (
 	"errors"
-	"github.com/crowdmob/goamz/aws"
+	"github.com/rightscale/goamz/aws"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,12 +12,13 @@ import (
 )
 
 type Server struct {
-	Auth   aws.Auth
-	Region aws.Region
+	Auth       aws.Auth
+	Region     aws.Region
+	httpClient *http.Client
 }
 
 func New(auth aws.Auth, region aws.Region) *Server {
-	return &Server{auth, region}
+	return &Server{auth, region, http.DefaultClient}
 }
 
 /*
@@ -62,7 +63,7 @@ func buildError(r *http.Response, jsonBody []byte) error {
 		log.Printf("Failed to parse body as JSON")
 		return err
 	}
-	ddbError.Message = json.Get("message").MustString()
+	ddbError.Message = json.Get("Message").MustString()
 
 	// Of the form: com.amazon.coral.validate#ValidationException
 	// We only want the last part
@@ -74,6 +75,10 @@ func buildError(r *http.Response, jsonBody []byte) error {
 	ddbError.Code = codeStr
 
 	return &ddbError
+}
+
+func (s *Server) SetHttpClient(client *http.Client) {
+	s.httpClient = client
 }
 
 func (s *Server) queryServer(target string, query *Query) ([]byte, error) {
@@ -95,7 +100,7 @@ func (s *Server) queryServer(target string, query *Query) ([]byte, error) {
 	signer := aws.NewV4Signer(s.Auth, "dynamodb", s.Region)
 	signer.Sign(hreq)
 
-	resp, err := http.DefaultClient.Do(hreq)
+	resp, err := s.httpClient.Do(hreq)
 
 	if err != nil {
 		log.Printf("Error calling Amazon")

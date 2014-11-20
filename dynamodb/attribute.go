@@ -5,9 +5,13 @@ import (
 )
 
 const (
-	TYPE_STRING = "S"
-	TYPE_NUMBER = "N"
-	TYPE_BINARY = "B"
+	TYPE_BOOLEAN = "BOOL"
+	TYPE_STRING  = "S"
+	TYPE_NUMBER  = "N"
+	TYPE_BINARY  = "B"
+
+	TYPE_LIST = "L"
+	TYPE_MAP  = "M"
 
 	TYPE_STRING_SET = "SS"
 	TYPE_NUMBER_SET = "NS"
@@ -91,6 +95,40 @@ func NewBinaryAttributeComparison(attributeName string, comparisonOperator strin
 		[]Attribute{*valueToCompare},
 	}
 }
+
+//-----------------------------------------------------------------------------
+// Expression Attribute
+//-----------------------------------------------------------------------------
+
+type ExpressionAttributeName struct {
+	Name  string
+	Value string
+}
+
+type ExpressionAttributeValue struct {
+	Name  string
+	Type  string
+	Value interface{}
+}
+
+func NewExpressionAttributeName(aname, avalue string) *ExpressionAttributeName {
+	return &ExpressionAttributeName{
+		Name:  aname,
+		Value: avalue,
+	}
+}
+
+func NewExpressionAttributeValue(aname, atype string, avalue interface{}) *ExpressionAttributeValue {
+	return &ExpressionAttributeValue{
+		Name:  aname,
+		Type:  atype,
+		Value: avalue,
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Attribute
+//-----------------------------------------------------------------------------
 
 func NewStringAttribute(name string, value string) *Attribute {
 	return &Attribute{

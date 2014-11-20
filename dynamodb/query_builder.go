@@ -252,6 +252,36 @@ func (q *Query) AddUpdates(attributes []Attribute, action string) {
 	q.buffer["AttributeUpdates"] = updates
 }
 
+func (q *Query) AddUpdateExpression(update string) {
+	q.buffer["UpdateExpression"] = update
+}
+
+func (q *Query) AddExpressionAttributeNames(attrs []ExpressionAttributeName) {
+	if len(attrs) == 0 {
+		return
+	}
+
+	exprNames := msi{}
+	for _, attr := range attrs {
+		exprNames[attr.Name] = attr.Value
+	}
+
+	q.buffer["ExpressionAttributeNames"] = exprNames
+}
+
+func (q *Query) AddExpressionAttributeValues(attrs []ExpressionAttributeValue) {
+	if len(attrs) == 0 {
+		return
+	}
+
+	exprValues := msi{}
+	for _, attr := range attrs {
+		exprValues[attr.Name] = msi{attr.Type: attr.Value}
+	}
+
+	q.buffer["ExpressionAttributeValues"] = exprValues
+}
+
 func (q *Query) AddExpected(attributes []Attribute) {
 	expected := msi{}
 	for _, a := range attributes {
@@ -266,6 +296,12 @@ func (q *Query) AddExpected(attributes []Attribute) {
 		expected[a.Name] = value
 	}
 	q.buffer["Expected"] = expected
+}
+
+func (q *Query) AddConditionExpression(expression string) {
+	if expression != "" {
+		q.buffer["ConditionExpression"] = expression
+	}
 }
 
 func attributeList(attributes []Attribute) msi {

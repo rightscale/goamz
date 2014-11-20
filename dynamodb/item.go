@@ -5,10 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"time"
 )
-
-const maxNumberOfRetry = 4
 
 type BatchGetItem struct {
 	Server *Server
@@ -189,35 +186,11 @@ func (t *Table) putItem(hashKey, rangeKey string, attributes, expected []Attribu
 	}
 
 	var jsonResponse []byte
-	var err error
-	// based on:
-	// http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html#APIRetries
-	currentRetry := uint(0)
-	for {
+	err := t.RetryHandler.Retry(func() error {
+		var err error
 		jsonResponse, err = t.Server.queryServer(target("PutItem"), q)
-		if currentRetry >= maxNumberOfRetry {
-			break
-		}
-
-		retry := false
-		if err != nil {
-			log.Printf("Error requesting from Amazon, request was: %#v\n response is:%#v\n and error is: %#v\n", q, string(jsonResponse), err)
-			if err, ok := err.(*Error); ok {
-				retry = (err.StatusCode == 500) ||
-					(err.Code == "ThrottlingException") ||
-					(err.Code == "ProvisionedThroughputExceededException")
-			}
-		}
-
-		if !retry {
-			break
-		}
-
-		log.Printf("Retrying in %v ms\n", (1<<currentRetry)*50)
-		<-time.After((1 << currentRetry) * 50 * time.Millisecond)
-		currentRetry += 1
-	}
-
+		return err
+	})
 	if err != nil {
 		return false, err
 	}
@@ -260,6 +233,24 @@ func (t *Table) ConditionalDeleteItem(key *Key, expected []Attribute) (bool, err
 	return t.deleteItem(key, expected)
 }
 
+func (t *Table) ConditionExpressionUpdateAttributes(key *Key,
+	update, condition string,
+	exprNames []ExpressionAttributeName, exprValues []ExpressionAttributeValue) (bool, error) {
+
+	if update == "" {
+		return false, errors.New("UpdateExpression must not be empty")
+	}
+
+	q := NewQuery(t)
+	q.AddKey(t, key)
+	q.AddUpdateExpression(update)
+	q.AddConditionExpression(condition)
+	q.AddExpressionAttributeNames(exprNames)
+	q.AddExpressionAttributeValues(exprValues)
+
+	return t.requestAttributesUpdate(q)
+}
+
 func (t *Table) AddAttributes(key *Key, attributes []Attribute) (bool, error) {
 	return t.modifyAttributes(key, attributes, nil, "ADD")
 }
@@ -285,7 +276,6 @@ func (t *Table) ConditionalDeleteAttributes(key *Key, attributes, expected []Att
 }
 
 func (t *Table) modifyAttributes(key *Key, attributes, expected []Attribute, action string) (bool, error) {
-
 	if len(attributes) == 0 {
 		return false, errors.New("At least one attribute is required.")
 	}
@@ -298,8 +288,11 @@ func (t *Table) modifyAttributes(key *Key, attributes, expected []Attribute, act
 		q.AddExpected(expected)
 	}
 
-	jsonResponse, err := t.Server.queryServer(target("UpdateItem"), q)
+	return t.requestAttributesUpdate(q)
+}
 
+func (t *Table) requestAttributesUpdate(q *Query) (bool, error) {
+	jsonResponse, err := t.Server.queryServer(target("UpdateItem"), q)
 	if err != nil {
 		return false, err
 	}
