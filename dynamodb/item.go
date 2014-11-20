@@ -186,9 +186,8 @@ func (t *Table) putItem(hashKey, rangeKey string, attributes, expected []Attribu
 	}
 
 	var jsonResponse []byte
-	var err error
-
-	t.RetryHandler.Retry(func() error {
+	err := t.RetryHandler.Retry(func() error {
+		var err error
 		jsonResponse, err = t.Server.queryServer(target("PutItem"), q)
 		return err
 	})

@@ -267,7 +267,7 @@ var DefaultSkipRetry = SkipRetry{}
 // Interface ==========
 
 type RetryHandlerInterface interface {
-	Retry(exec func() error)
+	Retry(exec func() error) error
 }
 
 func (t *Table) SetRetryHandler(rhi RetryHandlerInterface) {
@@ -278,11 +278,13 @@ func (t *Table) SetRetryHandler(rhi RetryHandlerInterface) {
 
 type BasicRetry struct{}
 
-func (br BasicRetry) Retry(exec func() error) {
+func (br BasicRetry) Retry(exec func() error) error {
+	var err error
+
 	// based on: http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html#APIRetries
 	currentRetry := uint(0)
 	for {
-		err := exec()
+		err = exec()
 		if currentRetry >= maxNumberOfRetry {
 			break
 		}
@@ -306,12 +308,14 @@ func (br BasicRetry) Retry(exec func() error) {
 		time.After((1 << currentRetry) * 50 * time.Millisecond)
 		currentRetry += 1
 	}
+
+	return err
 }
 
 // SkipRetry ==========
 
 type SkipRetry struct{}
 
-func (sr SkipRetry) Retry(exec func() error) {
-	exec()
+func (sr SkipRetry) Retry(exec func() error) error {
+	return exec()
 }
