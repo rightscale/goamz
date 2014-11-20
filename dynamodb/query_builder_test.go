@@ -33,12 +33,12 @@ func (s *QueryBuilderSuite) TestAddWriteRequestItems(c *check.C) {
 	primary := dynamodb.NewStringAttribute("WidgetFoo", "")
 	secondary := dynamodb.NewNumericAttribute("Created", "")
 	key := dynamodb.PrimaryKey{primary, secondary}
-	table := s.server.NewTable("FooData", key, nil)
+	table := s.server.NewTable("FooData", key)
 
 	primary2 := dynamodb.NewStringAttribute("TestHashKey", "")
 	secondary2 := dynamodb.NewNumericAttribute("TestRangeKey", "")
 	key2 := dynamodb.PrimaryKey{primary2, secondary2}
-	table2 := s.server.NewTable("TestTable", key2, nil)
+	table2 := s.server.NewTable("TestTable", key2)
 
 	q := dynamodb.NewEmptyQuery()
 
@@ -150,7 +150,7 @@ func (s *QueryBuilderSuite) TestAddWriteRequestItems(c *check.C) {
 func (s *QueryBuilderSuite) TestAddExpectedQuery(c *check.C) {
 	primary := dynamodb.NewStringAttribute("domain", "")
 	key := dynamodb.PrimaryKey{primary, nil}
-	table := s.server.NewTable("sites", key, nil)
+	table := s.server.NewTable("sites", key)
 
 	q := dynamodb.NewQuery(table)
 	q.AddKey(table, &dynamodb.Key{HashKey: "test"})
@@ -196,7 +196,7 @@ func (s *QueryBuilderSuite) TestAddExpectedQuery(c *check.C) {
 func (s *QueryBuilderSuite) TestGetItemQuery(c *check.C) {
 	primary := dynamodb.NewStringAttribute("domain", "")
 	key := dynamodb.PrimaryKey{primary, nil}
-	table := s.server.NewTable("sites", key, nil)
+	table := s.server.NewTable("sites", key)
 
 	q := dynamodb.NewQuery(table)
 	q.AddKey(table, &dynamodb.Key{HashKey: "test"})
@@ -253,7 +253,7 @@ func (s *QueryBuilderSuite) TestUpdateQuery(c *check.C) {
 	primary := dynamodb.NewStringAttribute("domain", "")
 	rangek := dynamodb.NewNumericAttribute("time", "")
 	key := dynamodb.PrimaryKey{primary, rangek}
-	table := s.server.NewTable("sites", key, nil)
+	table := s.server.NewTable("sites", key)
 
 	countAttribute := dynamodb.NewNumericAttribute("count", "4")
 	attributes := []dynamodb.Attribute{*countAttribute}
@@ -296,7 +296,7 @@ func (s *QueryBuilderSuite) TestUpdateQuery(c *check.C) {
 func (s *QueryBuilderSuite) TestAddUpdates(c *check.C) {
 	primary := dynamodb.NewStringAttribute("domain", "")
 	key := dynamodb.PrimaryKey{primary, nil}
-	table := s.server.NewTable("sites", key, nil)
+	table := s.server.NewTable("sites", key)
 
 	q := dynamodb.NewQuery(table)
 	q.AddKey(table, &dynamodb.Key{HashKey: "test"})
@@ -336,7 +336,7 @@ func (s *QueryBuilderSuite) TestAddUpdates(c *check.C) {
 func (s *QueryBuilderSuite) TestAddKeyConditions(c *check.C) {
 	primary := dynamodb.NewStringAttribute("domain", "")
 	key := dynamodb.PrimaryKey{primary, nil}
-	table := s.server.NewTable("sites", key, nil)
+	table := s.server.NewTable("sites", key)
 
 	q := dynamodb.NewQuery(table)
 	acs := []dynamodb.AttributeComparison{
@@ -382,7 +382,7 @@ func (s *QueryBuilderSuite) TestAddKeyConditions(c *check.C) {
 func (s *QueryBuilderSuite) TestAddQueryFilterConditions(c *check.C) {
 	primary := dynamodb.NewStringAttribute("domain", "")
 	key := dynamodb.PrimaryKey{primary, nil}
-	table := s.server.NewTable("sites", key, nil)
+	table := s.server.NewTable("sites", key)
 
 	q := dynamodb.NewQuery(table)
 	acs := []dynamodb.AttributeComparison{

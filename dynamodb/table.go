@@ -116,13 +116,8 @@ func (t *TableDescriptionT) BuildPrimaryKey() (pk PrimaryKey, err error) {
 	return
 }
 
-func (s *Server) NewTable(name string, key PrimaryKey, rhi RetryHandlerInterface) *Table {
-	// default to the basic retry mechanism
-	if rhi == nil {
-		rhi = BasicRetry{}
-	}
-
-	return &Table{s, name, key, rhi}
+func (s *Server) NewTable(name string, key PrimaryKey) *Table {
+	return &Table{s, name, key, DefaultBasicRetry}
 }
 
 func (s *Server) ListTables() ([]string, error) {
@@ -262,11 +257,24 @@ func keyValue(key string, value string) string {
 // Retry Handler
 //-----------------------------------------------------------------------------
 
+// Constants and Variables ==========
+
 const maxNumberOfRetry = 4
+
+var DefaultBasicRetry = BasicRetry{}
+var DefaultSkipRetry = SkipRetry{}
+
+// Interface ==========
 
 type RetryHandlerInterface interface {
 	Retry(exec func() error)
 }
+
+func (t *Table) SetRetryHandler(rhi RetryHandlerInterface) {
+	t.RetryHandler = rhi
+}
+
+// BasicRetry ==========
 
 type BasicRetry struct{}
 
@@ -299,6 +307,8 @@ func (br BasicRetry) Retry(exec func() error) {
 		currentRetry += 1
 	}
 }
+
+// SkipRetry ==========
 
 type SkipRetry struct{}
 
