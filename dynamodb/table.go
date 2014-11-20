@@ -265,24 +265,23 @@ func keyValue(key string, value string) string {
 const maxNumberOfRetry = 4
 
 type RetryHandlerInterface interface {
-	Retry(exec func() (*Query, []byte, error))
+	Retry(exec func() error)
 }
 
 type BasicRetry struct{}
 
-func (br BasicRetry) Retry(exec func() (*Query, []byte, error)) {
+func (br BasicRetry) Retry(exec func() error) {
 	// based on: http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html#APIRetries
 	currentRetry := uint(0)
 	for {
-		query, response, err := exec()
+		err := exec()
 		if currentRetry >= maxNumberOfRetry {
 			break
 		}
 
 		retry := false
 		if err != nil {
-			log.Printf("Error requesting from Amazon, request was: %#v\n response is:%#v\n and error is: %#v\n",
-				query, string(response), err)
+			log.Printf("Error requesting from Amazon: %v", err)
 
 			if err, ok := err.(*Error); ok {
 				retry = (err.StatusCode == 500) ||
@@ -303,6 +302,6 @@ func (br BasicRetry) Retry(exec func() (*Query, []byte, error)) {
 
 type SkipRetry struct{}
 
-func (sr SkipRetry) Retry(exec func() (*Query, []byte, error)) {
+func (sr SkipRetry) Retry(exec func() error) {
 	exec()
 }

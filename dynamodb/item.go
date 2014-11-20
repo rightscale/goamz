@@ -188,9 +188,9 @@ func (t *Table) putItem(hashKey, rangeKey string, attributes, expected []Attribu
 	var jsonResponse []byte
 	var err error
 
-	t.RetryHandler.Retry(func() (*Query, []byte, error) {
+	t.RetryHandler.Retry(func() error {
 		jsonResponse, err = t.Server.queryServer(target("PutItem"), q)
-		return q, jsonResponse, err
+		return err
 	})
 	if err != nil {
 		return false, err
