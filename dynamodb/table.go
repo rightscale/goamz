@@ -197,6 +197,25 @@ func (s *Server) CreateTable(tableDescription TableDescriptionT) (string, error)
 	return json.Get("TableDescription").Get("TableStatus").MustString(), nil
 }
 
+func (s *Server) UpdateTable(tableDescription TableDescriptionT) (string, error) {
+	query := NewEmptyQuery()
+	query.AddUpdateRequestTable(tableDescription)
+
+	jsonResponse, err := s.queryServer(target("UpdateTable"), query)
+
+	if err != nil {
+		return "unknown", err
+	}
+
+	json, err := simplejson.NewJson(jsonResponse)
+
+	if err != nil {
+		return "unknown", err
+	}
+
+	return json.Get("TableDescription").Get("TableStatus").MustString(), nil
+}
+
 func (s *Server) DeleteTable(tableDescription TableDescriptionT) (string, error) {
 	query := NewEmptyQuery()
 	query.AddDeleteRequestTable(tableDescription)
