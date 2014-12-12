@@ -63,8 +63,13 @@ func buildError(r *http.Response, jsonBody []byte) error {
 		log.Printf("Failed to parse body as JSON")
 		return err
 	}
-	ddbError.Message = json.Get("Message").MustString()
 
+	errMessageJson, hasKey := json.CheckGet("Message")
+	if !hasKey {
+		errMessageJson = json.Get("message")
+	}
+
+	ddbError.Message = errMessageJson.MustString()
 	// Of the form: com.amazon.coral.validate#ValidationException
 	// We only want the last part
 	codeStr := json.Get("__type").MustString()
