@@ -77,7 +77,7 @@ var table_suite_gsi = &TableSuite{
 	},
 }
 
-func (s *TableSuite) TestCreateListTableGsi(c *check.C) {
+func (s *TableSuite) TestCreateListUpdateDescribeTableGsi(c *check.C) {
 	status, err := s.server.CreateTable(s.TableDescriptionT)
 	if err != nil {
 		fmt.Printf("err %#v", err)
@@ -95,6 +95,42 @@ func (s *TableSuite) TestCreateListTableGsi(c *check.C) {
 	}
 	c.Check(len(tables), check.Not(check.Equals), 0)
 	c.Check(findTableByName(tables, s.TableDescriptionT.TableName), check.Equals, true)
+
+	// Update throughput
+	provisionedThroughput := s.TableDescriptionT.ProvisionedThroughput
+	updateTableDescriptionT := dynamodb.TableDescriptionT{
+		TableName: s.TableDescriptionT.TableName,
+		ProvisionedThroughput: dynamodb.ProvisionedThroughputT{
+			ReadCapacityUnits:  provisionedThroughput.ReadCapacityUnits + 1,
+			WriteCapacityUnits: provisionedThroughput.WriteCapacityUnits + 1,
+		},
+	}
+
+	status, err = s.server.UpdateTable(updateTableDescriptionT)
+	if err != nil {
+		fmt.Printf("err %#v", err)
+		c.Fatal(err)
+	}
+
+	if status != "ACTIVE" && status != "UPDATING" {
+		c.Error("Expect status to be ACTIVE or UPDATING")
+	}
+
+	s.WaitUntilStatus(c, "ACTIVE")
+
+	// Verify throughput got updated
+	updatedTableDescriptionT, err := s.server.DescribeTable(s.TableDescriptionT.TableName)
+	if err != nil {
+		c.Fatal(err)
+	}
+
+	updateProvisionedThroughput := updateTableDescriptionT.ProvisionedThroughput
+	updatedProvisionedThroughput := updatedTableDescriptionT.ProvisionedThroughput
+
+	c.Check(updatedProvisionedThroughput.ReadCapacityUnits, check.Equals,
+		updateProvisionedThroughput.ReadCapacityUnits)
+	c.Check(updatedProvisionedThroughput.WriteCapacityUnits, check.Equals,
+		updateProvisionedThroughput.WriteCapacityUnits)
 }
 
 var _ = check.Suite(table_suite)

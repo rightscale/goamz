@@ -11,6 +11,35 @@ type QueryBuilderSuite struct {
 	server *dynamodb.Server
 }
 
+var testUpdateTableDescriptionT = dynamodb.TableDescriptionT{
+	TableName: "DynamoDBTestMyTable",
+	AttributeDefinitions: []dynamodb.AttributeDefinitionT{
+		dynamodb.AttributeDefinitionT{"TestHashKey", "S"},
+		dynamodb.AttributeDefinitionT{"TestRangeKey", "N"},
+	},
+	KeySchema: []dynamodb.KeySchemaT{
+		dynamodb.KeySchemaT{"TestHashKey", "HASH"},
+		dynamodb.KeySchemaT{"TestRangeKey", "RANGE"},
+	},
+	ProvisionedThroughput: dynamodb.ProvisionedThroughputT{
+		ReadCapacityUnits:  1,
+		WriteCapacityUnits: 2,
+	},
+	GlobalSecondaryIndexes: []dynamodb.GlobalSecondaryIndexT{
+		dynamodb.GlobalSecondaryIndexT{
+			IndexName: "DynamoDBTestMyTableGlobalIndex1",
+			KeySchema: []dynamodb.KeySchemaT{
+				dynamodb.KeySchemaT{"TestColumn1", "HASH"},
+				dynamodb.KeySchemaT{"TestColumn2", "RANGE"},
+			},
+			ProvisionedThroughput: dynamodb.ProvisionedThroughputT{
+				ReadCapacityUnits:  3,
+				WriteCapacityUnits: 4,
+			},
+		},
+	},
+}
+
 var _ = check.Suite(&QueryBuilderSuite{})
 
 func (s *QueryBuilderSuite) SetUpSuite(c *check.C) {
@@ -422,6 +451,39 @@ func (s *QueryBuilderSuite) TestAddQueryFilterConditions(c *check.C) {
   "TableName": "sites"
 }
 	`))
+	if err != nil {
+		c.Fatal(err)
+	}
+	c.Check(queryJson, check.DeepEquals, expectedJson)
+}
+
+func (s *QueryBuilderSuite) TestAddUpdateRequestTable(c *check.C) {
+	q := dynamodb.NewEmptyQuery()
+	q.AddUpdateRequestTable(testUpdateTableDescriptionT)
+
+	queryJson, err := simplejson.NewJson([]byte(q.String()))
+	if err != nil {
+		c.Fatal(err)
+	}
+	expectedJson, err := simplejson.NewJson([]byte(`
+{
+	"GlobalSecondaryIndexUpdates":[
+		{
+			"Update":{
+				"IndexName":"DynamoDBTestMyTableGlobalIndex1",
+				"ProvisionedThroughput":{
+					"ReadCapacityUnits":3,
+					"WriteCapacityUnits":4
+				}
+			}
+		}
+	],
+	"ProvisionedThroughput":{
+		"ReadCapacityUnits":1,
+		"WriteCapacityUnits":2
+	},
+	"TableName":"DynamoDBTestMyTable"
+}`))
 	if err != nil {
 		c.Fatal(err)
 	}

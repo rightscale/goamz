@@ -165,6 +165,41 @@ func (q *Query) AddCreateRequestTable(description TableDescriptionT) {
 	}
 }
 
+func (q *Query) AddUpdateRequestTable(description TableDescriptionT) {
+	b := q.buffer
+
+	b["TableName"] = description.TableName
+	b["ProvisionedThroughput"] = q.capacityUnitsMsi(description.ProvisionedThroughput)
+
+	globalSecondaryIndexes := []interface{}{}
+
+	for _, ind := range description.GlobalSecondaryIndexes {
+		globalSecondaryIndexes = append(globalSecondaryIndexes,
+			msi{
+				"Update": msi{
+					"IndexName":             ind.IndexName,
+					"ProvisionedThroughput": q.capacityUnitsMsi(ind.ProvisionedThroughput),
+				},
+			})
+	}
+
+	if len(globalSecondaryIndexes) > 0 {
+		b["GlobalSecondaryIndexUpdates"] = globalSecondaryIndexes
+	}
+}
+
+func (q *Query) capacityUnitsMsi(provisionedThroughputT ProvisionedThroughputT) msi {
+	capacityUnitsMsi := msi{}
+	if provisionedThroughputT.ReadCapacityUnits > 0 {
+		capacityUnitsMsi["ReadCapacityUnits"] = int(provisionedThroughputT.ReadCapacityUnits)
+	}
+	if provisionedThroughputT.WriteCapacityUnits > 0 {
+		capacityUnitsMsi["WriteCapacityUnits"] = int(provisionedThroughputT.WriteCapacityUnits)
+	}
+
+	return capacityUnitsMsi
+}
+
 func (q *Query) AddDeleteRequestTable(description TableDescriptionT) {
 	b := q.buffer
 	b["TableName"] = description.TableName
