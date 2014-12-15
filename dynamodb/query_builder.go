@@ -169,7 +169,9 @@ func (q *Query) AddUpdateRequestTable(description TableDescriptionT) {
 	b := q.buffer
 
 	b["TableName"] = description.TableName
-	b["ProvisionedThroughput"] = q.capacityUnitsMsi(description.ProvisionedThroughput)
+	if tableThroughput := q.capacityUnitsMsi(description.ProvisionedThroughput); len(tableThroughput) > 0 {
+		b["ProvisionedThroughput"] = tableThroughput
+	}
 
 	globalSecondaryIndexes := []interface{}{}
 
