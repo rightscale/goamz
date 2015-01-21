@@ -79,6 +79,12 @@ func buildError(r *http.Response, jsonBody []byte) error {
 	}
 	ddbError.Code = codeStr
 
+	// TODO: delete once we're done
+	// DEBUG: why we receive 500 but no message
+	if ddbError.StatusCode == 500 && len(strings.Trim(ddbError.Message, "\n\r ")) == 0 {
+		log.Println("failed to fetch error message from dynamodb response:", string(jsonBody))
+	}
+
 	return &ddbError
 }
 
