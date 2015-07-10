@@ -38,6 +38,7 @@ const debug = false
 type S3 struct {
 	aws.Auth
 	aws.Region
+	httpClient     *http.Client
 	ConnectTimeout time.Duration
 	ReadTimeout    time.Duration
 	private        byte // Reserve the right of using private data.
@@ -93,7 +94,36 @@ var attempts = aws.AttemptStrategy{
 
 // New creates a new S3.
 func New(auth aws.Auth, region aws.Region) *S3 {
-	return &S3{auth, region, 0, 0, 0}
+	driver := &S3{auth, region, nil, 0, 0, 0}
+
+	driver.httpClient = &http.Client{
+		Transport: &http.Transport{
+			Dial:  driver.Dial,
+			Proxy: http.ProxyFromEnvironment,
+		},
+	}
+
+	return driver
+}
+
+func (s3 *S3) SetHttpClient(client *http.Client) {
+	s3.httpClient = client
+}
+
+func (s3 *S3) Dial(netw, addr string) (c net.Conn, err error) {
+	deadline := time.Now().Add(s3.ReadTimeout)
+	if s3.ConnectTimeout > 0 {
+		c, err = net.DialTimeout(netw, addr, s3.ConnectTimeout)
+	} else {
+		c, err = net.Dial(netw, addr)
+	}
+	if err != nil {
+		return
+	}
+	if s3.ReadTimeout > 0 {
+		err = c.SetDeadline(deadline)
+	}
+	return
 }
 
 // Bucket returns a Bucket with the given name.
@@ -1035,28 +1065,7 @@ func (s3 *S3) setupHttpRequest(req *request) (*http.Request, error) {
 // If resp is not nil, the XML data contained in the response
 // body will be unmarshalled on it.
 func (s3 *S3) doHttpRequest(hreq *http.Request, resp interface{}) (*http.Response, error) {
-	c := http.Client{
-		Transport: &http.Transport{
-			Dial: func(netw, addr string) (c net.Conn, err error) {
-				deadline := time.Now().Add(s3.ReadTimeout)
-				if s3.ConnectTimeout > 0 {
-					c, err = net.DialTimeout(netw, addr, s3.ConnectTimeout)
-				} else {
-					c, err = net.Dial(netw, addr)
-				}
-				if err != nil {
-					return
-				}
-				if s3.ReadTimeout > 0 {
-					err = c.SetDeadline(deadline)
-				}
-				return
-			},
-			Proxy: http.ProxyFromEnvironment,
-		},
-	}
-
-	hresp, err := c.Do(hreq)
+	hresp, err := s3.httpClient.Do(hreq)
 	if err != nil {
 		return nil, err
 	}
