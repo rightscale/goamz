@@ -96,10 +96,10 @@ type resource interface {
 	delete(a *action) interface{}
 }
 
-func NewServerWithPort(port int, config *Config) (*Server, error) {
-	l, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+func NewServerWithPort(host string, port int, config *Config) (*Server, error) {
+	l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
-		return nil, fmt.Errorf("cannot listen on localhost & port %d. Error: %v", port, err)
+		return nil, fmt.Errorf("cannot listen on %s & port %d. Error: %v", host, port, err)
 	}
 	srv := &Server{
 		listener: l,
@@ -114,7 +114,7 @@ func NewServerWithPort(port int, config *Config) (*Server, error) {
 }
 
 func NewServer(config *Config) (*Server, error) {
-	return NewServerWithPort(0, config)
+	return NewServerWithPort("localhost", 0, config)
 }
 
 // Quit closes down the server.
